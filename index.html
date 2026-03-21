@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SHIELD_AI — Content Safety Dashboard</title>
+  <meta name="theme-color" content="#020817"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <div class="logo-shield">🛡️</div>
+      <div>
+        <div class="logo-name">SHIELD_AI</div>
+        <div class="logo-sub">Content Safety · v1.0</div>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-tab="analyzeTab">🔍 Analyze</button>
+      <button class="nav-tab" data-tab="batchTab">📦 Batch</button>
+      <button class="nav-tab" data-tab="trendTab">📈 Trends</button>
+      <button class="nav-tab" data-tab="historyTab">📜 History</button>
+      <button class="nav-tab" data-tab="aboutTab">👤 About</button>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="shield-pill">🛡️ SHIELD_AI</div>
+    <button class="theme-btn" id="themeToggle">🌙</button>
+    <div class="api-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusLabel">Not tested</span>
+    </div>
+  </div>
+</nav>
+
+<div class="app-wrapper">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">⚙️ Configuration</div>
+        <div class="field">
+          <label>Model</label>
+          <select id="modelSelect">
+            <option value="text">Text Analysis</option>
+            <option value="image">Image Analysis</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Output Categories</label>
+          <div class="checkbox-group">
+            <label class="check-label"><input type="checkbox" value="Hate" checked/> 😡 Hate</label>
+            <label class="check-label"><input type="checkbox" value="SelfHarm" checked/> 💔 Self-Harm</label>
+            <label class="check-label"><input type="checkbox" value="Sexual" checked/> 🔞 Sexual</label>
+            <label class="check-label"><input type="checkbox" value="Violence" checked/> ⚔️ Violence</label>
+          </div>
+        </div>
+        <button class="btn btn-outline" id="testConnectionBtn">⚡ Test Connection</button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">📊 Session Stats</div>
+        <div class="stats-grid">
+          <div class="stat-item"><div class="stat-val" id="totalScans">0</div><div class="stat-key">Total</div></div>
+          <div class="stat-item"><div class="stat-val" id="flaggedScans">0</div><div class="stat-key">Flagged</div></div>
+          <div class="stat-item"><div class="stat-val" id="safeScans">0</div><div class="stat-key">Safe</div></div>
+          <div class="stat-item"><div class="stat-val" id="avgScore">0</div><div class="stat-key">Avg Risk</div></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">🚀 Quick Actions</div>
+        <button class="btn btn-outline" id="exportJsonBtn" disabled>⬇ Export JSON</button>
+        <button class="btn btn-outline" id="exportPdfBtn" disabled>📄 Export PDF</button>
+        <button class="btn btn-outline" id="copyResultBtn" disabled>📋 Copy Result</button>
+        <button class="btn btn-danger" id="clearAllBtn">🗑 Clear All</button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="powered-by">Powered by</div>
+        <div class="powered-logos">Microsoft Azure AI</div>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <!-- ANALYZE TAB -->
+      <div id="analyzeTab" class="tab-pane active">
+        <div class="page-header">
+          <h1 class="page-title">Analyze Content</h1>
+          <p class="page-sub">Scan text or images for harmful content using Azure AI Content Safety</p>
+        </div>
+        <div class="mode-switcher">
+          <button class="mode-btn active" id="textModeBtn" onclick="setMode('text')"><span>📝</span> Text Analysis</button>
+          <button class="mode-btn" id="imageModeBtn" onclick="setMode('image')"><span>🖼️</span> Image Analysis</button>
+        </div>
+        <div id="textSection">
+          <div class="input-card">
+            <div class="input-card-header">
+              <span>📝 Text Input</span>
+              <span class="char-count" id="charCount">0 / 10,000</span>
+            </div>
+            <textarea id="textInput" placeholder="Paste or type any text to analyze for harmful content..." maxlength="10000" oninput="updateCharCount()"></textarea>
+            <div id="highlightPreview" style="display:none;">
+              <div class="highlight-header">🔦 Word Risk Highlight</div>
+              <div id="highlightBox" class="highlight-box"></div>
+            </div>
+            <div class="input-card-footer">
+              <button class="btn btn-ghost" onclick="document.getElementById('textInput').value=''; updateCharCount(); document.getElementById('highlightPreview').style.display='none';">Clear</button>
+              <button class="btn btn-outline" onclick="previewHighlight()">🔦 Preview Highlights</button>
+              <button class="btn btn-primary" id="analyzeTextBtn" onclick="analyzeText()"><span>🔍</span> Analyze Text</button>
+            </div>
+          </div>
+        </div>
+        <div id="imageSection" style="display:none;">
+          <div class="input-card">
+            <div class="input-card-header"><span>🖼️ Image Upload</span></div>
+            <div class="dropzone" id="dropzone" onclick="document.getElementById('imageInput').click()">
+              <input type="file" id="imageInput" accept=".jpg,.jpeg,.png" style="display:none;" onchange="previewImage(event)"/>
+              <div class="dropzone-content" id="dropzoneContent">
+                <div class="drop-icon">📁</div>
+                <div class="drop-text">Click or drag & drop image here</div>
+                <div class="drop-hint">JPG, JPEG, PNG supported</div>
+              </div>
+              <img id="previewImg" src="" alt="" style="display:none; max-width:100%; max-height:300px; border-radius:12px;"/>
+            </div>
+            <div class="input-card-footer">
+              <button class="btn btn-ghost" onclick="clearImage()">Clear</button>
+              <button class="btn btn-primary" onclick="analyzeImage()"><span>🔍</span> Analyze Image</button>
+            </div>
+          </div>
+        </div>
+        <div id="loadingSection" style="display:none;">
+          <div class="loading-card">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Analyzing with Azure AI...</div>
+            <div class="loading-sub" id="loadingStep">Sending request...</div>
+          </div>
+        </div>
+        <div id="resultSection" style="display:none;">
+          <div class="result-card">
+            <div class="result-header">
+              <div class="result-title">📊 Safety Report</div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn btn-ghost" onclick="shareResult()" style="font-size:11px;padding:5px 10px;">🔗 Share</button>
+                <div class="result-badge" id="overallBadge"></div>
+              </div>
+            </div>
+            <div class="gauge-grid" id="gaugeGrid"></div>
+            <div class="risk-chart" id="riskChart"></div>
+            <div class="risk-grid" id="riskGrid"></div>
+            <div class="result-status" id="resultStatus"></div>
+            <div class="result-meta" id="resultMeta"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BATCH TAB -->
+      <div id="batchTab" class="tab-pane">
+        <div class="page-header">
+          <h1 class="page-title">Batch Analysis</h1>
+          <p class="page-sub">Analyze multiple texts at once — one per line</p>
+        </div>
+        <div class="input-card">
+          <div class="input-card-header">
+            <span>📦 Batch Input</span>
+            <span class="char-count" id="batchCount">0 items</span>
+          </div>
+          <textarea id="batchInput" placeholder="Enter one text per line..." style="min-height:200px;" oninput="updateBatchCount()"></textarea>
+          <div class="input-card-footer">
+            <button class="btn btn-ghost" onclick="document.getElementById('batchInput').value=''; updateBatchCount()">Clear</button>
+            <button class="btn btn-primary" id="batchAnalyzeBtn" onclick="analyzeBatch()"><span>📦</span> Analyze All</button>
+          </div>
+        </div>
+        <div id="batchResults"></div>
+      </div>
+
+      <!-- TRENDS TAB -->
+      <div id="trendTab" class="tab-pane">
+        <div class="page-header">
+          <h1 class="page-title">Risk Trends</h1>
+          <p class="page-sub">Visual chart of all scans this session</p>
+        </div>
+        <div class="trend-card" id="trendCard">
+          <div class="empty-state">
+            <div class="empty-icon">📈</div>
+            <div class="empty-text">No trend data yet</div>
+            <div class="empty-sub">Analyze some content to see trends here</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="historyTab" class="tab-pane">
+        <div class="page-header">
+          <h1 class="page-title">Analysis History</h1>
+          <p class="page-sub">All scans from this session</p>
+        </div>
+        <div id="historyContainer">
+          <div class="empty-state">
+            <div class="empty-icon">📂</div>
+            <div class="empty-text">No analyses yet</div>
+            <div class="empty-sub">Analyze some content to see it here</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABOUT TAB -->
+      <div id="aboutTab" class="tab-pane">
+        <div class="page-header">
+          <h1 class="page-title">About</h1>
+          <p class="page-sub">Project & Developer Information</p>
+        </div>
+        <div class="about-grid">
+          <div class="about-card team-card">
+            <div class="about-card-title">👥 Team</div>
+            <div class="team-member">
+              <div class="member-avatar">AS</div>
+              <div class="member-info">
+                <div class="member-name">Aditya Sharma</div>
+                <div class="member-role">Project Developer · B.Tech CSE (AI & ML)</div>
+                <div class="member-uni">Chandigarh University</div>
+                <div class="member-links">
+                  <a href="https://www.linkedin.com/in/aditya-sharma-a42a68293/" target="_blank" class="member-link">LinkedIn</a>
+                  <a href="mailto:dipanaditya0022@gmail.com" class="member-link">Email</a>
+                </div>
+              </div>
+            </div>
+            <hr class="divider"/>
+            <div class="team-member">
+              <div class="member-avatar mentor">AB</div>
+              <div class="member-info">
+                <div class="member-name">Abhimanyu Sharma Sir</div>
+                <div class="member-role">Project Mentor & Guide</div>
+                <div class="member-uni">ByteXL Faculty</div>
+                <div class="member-links">
+                  <a href="https://www.linkedin.com/in/017abhimanyu/" target="_blank" class="member-link">LinkedIn</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="about-card features-card">
+            <div class="about-card-title">✨ Features</div>
+            <ul class="features-list">
+              <li>🔍 Real-time text content analysis</li>
+              <li>🖼️ Image content safety scanning</li>
+              <li>📦 Batch analysis — multiple texts at once</li>
+              <li>🎯 Severity gauge meters per category</li>
+              <li>🔦 Word risk highlighting</li>
+              <li>📈 Risk trend graph across session</li>
+              <li>📜 Session history with full reports</li>
+              <li>⬇ Export results as JSON or PDF</li>
+              <li>📋 Copy result to clipboard</li>
+              <li>🔗 Share result as link</li>
+              <li>🌙 Dark / Light mode</li>
+              <li>🔐 Secure backend — key never exposed</li>
+            </ul>
+          </div>
+          <div class="about-card tech-card">
+            <div class="about-card-title">🛠 Tech Stack</div>
+            <div class="tech-list">
+              <div class="tech-item"><span class="tech-icon">☁️</span><div><div class="tech-name">Microsoft Azure AI</div><div class="tech-desc">Content Safety API</div></div></div>
+              <div class="tech-item"><span class="tech-icon">🌐</span><div><div class="tech-name">HTML / CSS / JS</div><div class="tech-desc">Pure frontend, zero frameworks</div></div></div>
+              <div class="tech-item"><span class="tech-icon">⚡</span><div><div class="tech-name">Vercel Functions</div><div class="tech-desc">Secure serverless backend</div></div></div>
+              <div class="tech-item"><span class="tech-icon">🚀</span><div><div class="tech-name">Vercel</div><div class="tech-desc">Deployment & hosting</div></div></div>
+            </div>
+          </div>
+          <div class="about-card org-card">
+            <div class="about-card-title">🏫 Organizations</div>
+            <div class="org-list">
+              <div class="org-item"><div class="org-name">Chandigarh University</div><div class="org-desc">Technical Innovation Partner</div></div>
+              <div class="org-item"><div class="org-name">ByteXL</div><div class="org-desc">Learning & Mentorship Platform</div></div>
+              <div class="org-item"><div class="org-name">Microsoft Azure</div><div class="org-desc">Cloud AI Infrastructure</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- FOOTER - outside app div, full width, centered -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-credits">
+        <div class="footer-person">
+          <div class="footer-avatar">AS</div>
+          <div>
+            <div class="footer-name">Aditya Sharma</div>
+            <div class="footer-role">Project Developer</div>
+            <div class="footer-links">
+              <a href="https://www.linkedin.com/in/aditya-sharma-a42a68293/" target="_blank" class="footer-link">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                LinkedIn
+              </a>
+              <a href="mailto:dipanaditya0022@gmail.com" class="footer-link">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+                Email
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-divider-v"></div>
+        <div class="footer-person">
+          <div class="footer-avatar mentor">AB</div>
+          <div>
+            <div class="footer-name">Abhimanyu Sharma Sir</div>
+            <div class="footer-role">Project Mentor & Guide</div>
+            <div class="footer-links">
+              <a href="https://www.linkedin.com/in/017abhimanyu/" target="_blank" class="footer-link">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                LinkedIn
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

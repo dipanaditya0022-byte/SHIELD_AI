@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/analyze", "destination": "/api/analyze" },
+    { "source": "/api/test", "destination": "/api/test" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
